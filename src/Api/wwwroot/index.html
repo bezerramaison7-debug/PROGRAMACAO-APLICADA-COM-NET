@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hub de Processamento de Pedidos</title>
+<link rel="stylesheet" href="/hub.css">
+<script src="/signalr.min.js" defer></script>
+<script src="/hub.js" defer></script>
+</head>
+<body>
+<main>
+<header><h1>Hub de Processamento de Pedidos</h1><p id="conexao" role="status">Desconectado</p></header>
+<section aria-labelledby="acesso">
+<h2 id="acesso">Acesso ao laboratório</h2>
+<form id="conectar">
+<label for="token">Chave do operador</label><input id="token" type="password" required autocomplete="off">
+<button>Conectar</button>
+</form>
+</section>
+<div class="colunas">
+<section aria-labelledby="novo">
+<h2 id="novo">Novo pedido</h2>
+<form id="criar">
+<label for="regiao">Região</label><select id="regiao"><option>SE</option><option>S</option><option>N</option><option>NE</option><option>CO</option></select>
+<label for="sku">SKU</label><input id="sku" required>
+<label for="quantidade">Quantidade</label><input id="quantidade" type="number" min="1" max="10000" step="1" value="1" required>
+<label for="preco">Preço unitário em centavos</label><input id="preco" type="number" min="1" max="100000000" step="1" required>
+<label class="check"><input id="prioritario" type="checkbox"> Prioritário</label>
+<button disabled>Criar pedido</button>
+</form>
+</section>
+<section aria-labelledby="consulta">
+<h2 id="consulta">Acompanhar pedido</h2>
+<form id="acompanhar">
+<label for="pedido">Identificador do pedido</label><input id="pedido" required spellcheck="false">
+<button disabled>Acompanhar</button>
+</form>
+<button id="processar" disabled>Enviar para processamento</button>
+<dl><dt>Categoria</dt><dd id="categoria">—</dd><dt>Estado</dt><dd id="estado">—</dd><dt>Total</dt><dd id="total">—</dd></dl>
+<p id="atividade" role="status"></p>
+</section>
+</div>
+<p id="erro" role="alert"></p>
+</main>
+</body>
+</html>

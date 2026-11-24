@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/BenchmarkDotNet.Artifacts/
+*.db*
+artifacts/
+.vs/
+TestResults/
+node_modules/
+__pycache__/

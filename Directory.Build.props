@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>
