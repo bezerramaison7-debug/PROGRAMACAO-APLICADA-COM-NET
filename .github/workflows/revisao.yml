@@ -81,3 +81,31 @@ jobs:
             artifacts/diagnostico/*.nettrace
             artifacts/diagnostico/*-top.txt
             BenchmarkDotNet.Artifacts/results/
+  visual-studio:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Compilar com o MSBuild do Visual Studio 2026
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $argsVs = @('-latest', '-version', '[18.0,19.0)', '-requires', 'Microsoft.Component.MSBuild', 'Microsoft.VisualStudio.Workload.NetWeb')
+          $vs = & $vswhere @argsVs -property installationVersion | Select-Object -First 1
+          $msbuild = & $vswhere @argsVs -find 'MSBuild\Current\Bin\amd64\MSBuild.exe' | Select-Object -First 1
+          if (!$vs -or !$msbuild) { throw 'Visual Studio 2026 com a carga de trabalho Web indisponível.' }
+          Write-Host "Visual Studio 2026 (carga Web): $vs"
+          & $msbuild -version -nologo
+          & $msbuild HubPedidos.slnx /restore /m /p:Configuration=Release /p:UseSharedCompilation=false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test -c Release --no-build -m:1 --logger trx --results-directory artifacts/windows
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: testes-visual-studio-2026
+          path: artifacts/windows/*.trx
