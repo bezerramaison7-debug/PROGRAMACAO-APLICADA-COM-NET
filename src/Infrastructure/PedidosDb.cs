@@ -101,3 +101,17 @@ public sealed class PedidosStore(PedidosDb db)
         return new(total, resultado);
     }
 }
+
+public sealed class ProcessamentoSql(PedidosDb db) : IProcessamento
+{
+    public async Task<PedidoAtualizado?> Processar(ProcessarPedidoJob job, CancellationToken token)
+    {
+        var linha = await db.Pedidos.SingleOrDefaultAsync(p => p.Id == job.Id && p.Dono == job.Dono, token);
+        if (linha is null || linha.Estado == "processado")
+            return null;
+        linha.Estado = "processado";
+        linha.Revisao++;
+        await db.SaveChangesAsync(token);
+        return new(linha.Id, linha.Estado, linha.Revisao, DateTimeOffset.UtcNow);
+    }
+}
