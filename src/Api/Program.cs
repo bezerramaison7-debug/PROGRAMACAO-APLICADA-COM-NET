@@ -16,6 +16,18 @@ app.MapPost("/pedidos", (CriarPedidoRequest body) =>
         return Results.BadRequest(new { erro = e.Message });
     }
 });
+app.MapPost("/lotes/validar", async (HttpRequest request, CancellationToken token) =>
+{
+    try
+    {
+        var itens = await Importacao.LerAsync(request.Body, token);
+        return Results.Ok(new { itens = itens.Count });
+    }
+    catch (FormatException e)
+    {
+        return Results.BadRequest(new { erro = e.Message });
+    }
+});
 app.Run();
 
 public partial class Program;
