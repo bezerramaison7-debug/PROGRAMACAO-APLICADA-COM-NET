@@ -1,4 +1,8 @@
 using Application;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text.Json;
+using Microsoft.Net.Http.Headers;
 using Infrastructure;
 
 namespace Api;
@@ -7,21 +11,30 @@ public static class ConsultaEndpoint
 {
     public static void MapConsultas(this IEndpointRouteBuilder app, bool compilada)
     {
-        app.MapGet("/pedidos/{id:guid}", (Guid id, PedidosStore store, CancellationToken token) =>
-            Buscar(id, "v1", store, compilada, token));
-        app.MapGet("/api/{versao}/pedidos/{id:guid}", (Guid id, string versao, PedidosStore store, CancellationToken token) =>
-            Buscar(id, versao, store, compilada, token));
+        app.MapGet("/pedidos/{id:guid}", (Guid id, PedidosStore store, HttpContext http, CancellationToken token) =>
+            Buscar(id, "v1", store, http, compilada, token)).RequireAuthorization();
+        app.MapGet("/api/{versao}/pedidos/{id:guid}", (Guid id, string versao, PedidosStore store, HttpContext http, CancellationToken token) =>
+            Buscar(id, versao, store, http, compilada, token)).RequireAuthorization();
     }
 
-    private static async Task<IResult> Buscar(Guid id, string versao, PedidosStore store, bool compilada, CancellationToken token)
+    private static async Task<IResult> Buscar(Guid id, string versao, PedidosStore store, HttpContext http, bool compilada, CancellationToken token)
     {
         if (versao is not ("v1" or "v2"))
             return Results.BadRequest(new { erro = "Use v1 ou v2." });
-        var pedido = compilada ? await store.BuscarCompilado(id, "laboratorio") : await store.Buscar(id, "laboratorio", token);
+        var dono = http.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var pedido = compilada ? await store.BuscarCompilado(id, dono) : await store.Buscar(id, dono, token);
         if (pedido is null)
             return Results.NotFound();
-        return versao == "v1"
-            ? Results.Ok(new PedidoResponse(pedido.Id, pedido.TotalCentavos, pedido.Categoria))
-            : Results.Ok(new PedidoV2(pedido.Id, pedido.TotalCentavos / 100m, "BRL", pedido.Categoria, pedido.Estado));
+        object dto = versao == "v1"
+            ? new PedidoResponse(pedido.Id, pedido.TotalCentavos, pedido.Categoria)
+            : new PedidoV2(pedido.Id, pedido.TotalCentavos / 100m, "BRL", pedido.Categoria, pedido.Estado);
+        var body = JsonSerializer.SerializeToUtf8Bytes(dto, JsonSerializerOptions.Web);
+        var etag = new EntityTagHeaderValue(string.Concat((char)34, Convert.ToHexString(SHA256.HashData(body)), (char)34));
+        http.Response.GetTypedHeaders().ETag = etag;
+        http.Response.Headers.CacheControl = "private, no-cache";
+        if (EntityTagHeaderValue.TryParseStrictList(http.Request.Headers.IfNoneMatch.ToArray(), out var tags)
+            && tags.Any(tag => tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(etag, useStrongComparison: false)))
+            return Results.StatusCode(StatusCodes.Status304NotModified);
+        return Results.Bytes(body, "application/json; charset=utf-8");
     }
 }

@@ -147,7 +147,3 @@ public sealed class Worker(Fila fila, LimiteBanco limite, IServiceScopeFactory s
     }
 }
 
-public sealed class NotificacaoNula : INotificacoes
-{
-    public Task Publicar(string dono, PedidoAtualizado evento, CancellationToken token) => Task.CompletedTask;
-}

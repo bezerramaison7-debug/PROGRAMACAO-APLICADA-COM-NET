@@ -12,7 +12,7 @@ from time import perf_counter
 PEDIDO = json.dumps({"regiao": "SE", "prioritario": False, "itens": [
     {"sku": "CARGA", "quantidade": 2, "precoCentavos": 150}
 ]})
-HEADERS = {"Content-Type": "application/json", "Authorization": "Bearer carga-local"}
+HEADERS = {"Content-Type": "application/json", "Authorization": "Bearer " + __import__("os").environ.get("HUB_TOKEN", "carga-local")}
 
 
 def request(conn, verb, path, body=None):

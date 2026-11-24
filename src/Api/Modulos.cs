@@ -1,4 +1,5 @@
 using Application;
+using Microsoft.AspNetCore.Authentication;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,5 +26,20 @@ public static class Modulos
     }
 
     public static IServiceCollection AddNotificacoes(this IServiceCollection services)
-        => services.AddSingleton<INotificacoes, NotificacaoNula>();
+    {
+        services.AddSignalR();
+        services.AddSingleton<Assinaturas>();
+        services.AddSingleton<INotificacoes, NotificacaoSignalR>();
+        return services;
+    }
+
+    public static IServiceCollection AddSeguranca(this IServiceCollection services)
+    {
+        services.AddSingleton<Operadores>();
+        services.AddAuthentication("Laboratorio").AddScheme<AuthenticationSchemeOptions, LaboratorioAuth>("Laboratorio", _ => { });
+        services.AddAuthorization();
+        services.AddOutputCache(options => options.AddPolicy("indicadores", p =>
+            p.Expire(TimeSpan.FromSeconds(15)).SetVaryByQuery("categoria").Tag("indicadores")));
+        return services;
+    }
 }

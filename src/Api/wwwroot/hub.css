@@ -1,0 +1,21 @@
+:root { font-family: system-ui, sans-serif; color: #102a2a; background: #eff5f3; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 960px; margin: auto; padding: 2rem 1rem; }
+header { border-bottom: 2px solid #0c6256; margin-bottom: 1.3rem; }
+h1 { margin: .25rem 0; font-size: clamp(1.45rem, 4vw, 2.2rem); }
+h2 { margin: 0 0 .9rem; font-size: 1.15rem; }
+section { border: 1px solid #c0d6d0; border-radius: 12px; padding: 1.15rem; background: #fff; margin-bottom: 1rem; }
+.colunas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+form { display: grid; gap: .48rem; max-width: 420px; }
+input, select, button { font: inherit; padding: .58rem .7rem; border-radius: 6px; }
+input, select { border: 1px solid #829d96; min-width: 0; }
+button { background: #0c6256; color: white; border: 1px solid #0c6256; width: fit-content; margin-top: .35rem; }
+button:disabled { background: #e0e8e6; border-color: #a7bab5; color: #455a55; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #165f95; outline-offset: 2px; }
+dl { display: grid; grid-template-columns: 6rem 1fr; gap: .35rem; }
+dd { margin: 0; font-weight: 650; }
+dt, #conexao { color: #385550; }
+#erro { color: #a32929; font-weight: 650; }
+.check { margin-top: .35rem; }
+@media (max-width: 620px) { .colunas { grid-template-columns: 1fr; gap: 0; } }
