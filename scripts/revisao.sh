@@ -11,4 +11,4 @@ else
   dotnet format --verify-no-changes --no-restore
 fi
 dotnet test -c Release --no-build -m:1 --logger trx --results-directory "$saida"
-dotnet publish src/Api -c Release --no-build -o "$saida/publicado"
+dotnet publish src/Api -c Release --no-build -m:1 -p:UseSharedCompilation=false -o "$saida/publicado"

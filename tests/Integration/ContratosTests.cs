@@ -1,10 +1,12 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using Application;
+using Xunit.Abstractions;
 
 namespace Integration;
 
-public sealed class ContratosTests
+public sealed class ContratosTests(ITestOutputHelper output)
 {
     internal static readonly CriarPedidoRequest Payload = new("SE", false, [new("LAB", 2, 150)]);
 
@@ -57,8 +59,20 @@ public sealed class ContratosTests
         Assert.Equal(HttpStatusCode.OK, (await operador.SendAsync(invalido)).StatusCode);
 
         const string indicadores = "/indicadores?categoria=normal";
+        var marca = Stopwatch.GetTimestamp();
         var primeiro = await publico.GetFromJsonAsync<Indicador>(indicadores);
-        var segundo = await publico.GetFromJsonAsync<Indicador>(indicadores);
+        var latenciaInicial = Stopwatch.GetElapsedTime(marca).TotalMilliseconds;
+        var latencias = new double[20];
+        Indicador? segundo = null;
+        for (var i = 0; i < latencias.Length; i++)
+        {
+            marca = Stopwatch.GetTimestamp();
+            segundo = await publico.GetFromJsonAsync<Indicador>(indicadores);
+            latencias[i] = Stopwatch.GetElapsedTime(marca).TotalMilliseconds;
+            Assert.Equal(primeiro, segundo);
+        }
+        Array.Sort(latencias);
+        output.WriteLine($"Output cache: primeira consulta {latenciaInicial:F3} ms; 20 hits, p50={latencias[9]:F3} ms.");
         Assert.Equal(primeiro, segundo);
         Assert.Equal(0, primeiro!.Processados);
         Assert.NotEqual(primeiro.Amostra, (await publico.GetFromJsonAsync<Indicador>("/indicadores?categoria=regional"))!.Amostra);

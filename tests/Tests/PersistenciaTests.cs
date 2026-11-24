@@ -59,6 +59,28 @@ public sealed class PersistenciaTests(ITestOutputHelper output)
         output.WriteLine(string.Join("\n", comandos.Sql));
         Assert.Equal(59, await json.CountAsync());
 
+        // A tabela equivalente materializa as propriedades em colunas escalares e indexa Região.
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TEMP TABLE MetaRelacional (
+                PedidoId TEXT PRIMARY KEY, Regiao TEXT NOT NULL, Prioritario INTEGER NOT NULL
+            );
+            INSERT INTO MetaRelacional
+            SELECT Id, Meta ->> 'Regiao', Meta ->> 'Prioritario' FROM Pedidos;
+            CREATE INDEX ix_meta_relacional_regiao ON MetaRelacional (Regiao);
+            """);
+        await using (var alternativa = conn.CreateCommand())
+        {
+            alternativa.CommandText = "SELECT COUNT(*) FROM MetaRelacional WHERE Regiao = $regiao";
+            alternativa.Parameters.AddWithValue("$regiao", "NE");
+            Assert.Equal(59L, await alternativa.ExecuteScalarAsync());
+            alternativa.CommandText = "EXPLAIN QUERY PLAN SELECT COUNT(*) FROM MetaRelacional WHERE Regiao = $regiao";
+            await using var plano = await alternativa.ExecuteReaderAsync();
+            Assert.True(await plano.ReadAsync());
+            var detalhe = plano.GetString(3);
+            Assert.Contains("ix_meta_relacional_regiao", detalhe);
+            output.WriteLine("Plano relacional: " + detalhe);
+        }
+
         var normal = await store.Buscar(id, "lab", default);
         Assert.Equal(normal, await store.BuscarCompilado(id, "lab"));
         Assert.Null(await store.BuscarCompilado(id, "outro"));

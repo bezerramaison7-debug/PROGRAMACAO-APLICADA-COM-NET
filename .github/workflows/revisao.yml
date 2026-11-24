@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   revisao:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -29,13 +29,13 @@ jobs:
         run: bash scripts/homologar.sh
       - name: Comparar fila em duas configurações
         run: bash scripts/fila-cenarios.sh
+      - name: Demonstrar bloqueio por análise e testes
+        run: bash scripts/provar-gates.sh
       - name: Executar cenários de interface
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
           bash scripts/homologar.sh ux
-      - name: Demonstrar bloqueio por análise e testes
-        run: bash scripts/provar-gates.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
