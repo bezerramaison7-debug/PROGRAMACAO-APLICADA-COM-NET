@@ -12,6 +12,7 @@ builder.Services.AddSingleton(_ => new Fila(Math.Clamp(builder.Configuration.Get
 builder.Services.AddSingleton(new LimiteBanco(1));
 builder.Services.AddSingleton<INotificacoes, NotificacaoNula>();
 builder.Services.AddHostedService<Worker>();
+var compilada = builder.Configuration.GetValue("Diagnostico:ConsultaCompilada", false);
 var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
     await scope.ServiceProvider.GetRequiredService<PedidosDb>().Database.MigrateAsync();
@@ -46,7 +47,7 @@ app.MapPost("/lotes/validar", async (HttpRequest request, CancellationToken toke
 });
 app.MapGet("/pedidos/{id:guid}", async (Guid id, PedidosStore store, CancellationToken token) =>
 {
-    var pedido = await store.Buscar(id, "laboratorio", token);
+    var pedido = compilada ? await store.BuscarCompilado(id, "laboratorio") : await store.Buscar(id, "laboratorio", token);
     return pedido is null ? Results.NotFound() :
         Results.Ok(new PedidoResponse(pedido.Id, pedido.TotalCentavos, pedido.Categoria));
 });
