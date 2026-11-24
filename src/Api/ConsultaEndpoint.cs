@@ -29,10 +29,10 @@ public static class ConsultaEndpoint
             ? new PedidoResponse(pedido.Id, pedido.TotalCentavos, pedido.Categoria)
             : new PedidoV2(pedido.Id, pedido.TotalCentavos / 100m, "BRL", pedido.Categoria, pedido.Estado);
         var body = JsonSerializer.SerializeToUtf8Bytes(dto, JsonSerializerOptions.Web);
-        var etag = new EntityTagHeaderValue(string.Concat((char)34, Convert.ToHexString(SHA256.HashData(body)), (char)34));
+        var etag = new EntityTagHeaderValue("\"" + Convert.ToHexString(SHA256.HashData(body)) + "\"");
         http.Response.GetTypedHeaders().ETag = etag;
         http.Response.Headers.CacheControl = "private, no-cache";
-        if (EntityTagHeaderValue.TryParseStrictList(http.Request.Headers.IfNoneMatch.ToArray(), out var tags)
+        if (EntityTagHeaderValue.TryParseStrictList([http.Request.Headers.IfNoneMatch.ToString()], out var tags)
             && tags.Any(tag => tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(etag, useStrongComparison: false)))
             return Results.StatusCode(StatusCodes.Status304NotModified);
         return Results.Bytes(body, "application/json; charset=utf-8");

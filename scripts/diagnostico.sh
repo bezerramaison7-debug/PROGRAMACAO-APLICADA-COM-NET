@@ -4,13 +4,14 @@ saida="$(realpath -m "${1:-artifacts/diagnostico}")"
 mkdir -p "$saida"
 produto="$(realpath "${API_DLL:-src/Api/bin/Release/net10.0/Api.dll}")"
 pid=""
+export HUB_TOKEN="$(openssl rand -hex 16)"
 trap 'if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; fi' EXIT
 for modo in normal compilada; do
   rm -f "$saida/$modo.db"
   compilada=false
   [[ "$modo" != compilada ]] || compilada=true
   env "ConnectionStrings__Pedidos=Data Source=$saida/$modo.db" \
-    Diagnostico__ConsultaCompilada="$compilada" Auth__Operadores__carga=carga-local \
+    Diagnostico__ConsultaCompilada="$compilada" Auth__Operadores__carga="$HUB_TOKEN" \
     Logging__LogLevel__Default=Warning \
     dotnet "$produto" --urls http://127.0.0.1:5080 > "$saida/$modo-servidor.log" 2>&1 &
   pid=$!

@@ -1,0 +1,83 @@
+name: Revisão do Hub
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [main, implementacao/hub-pedidos]
+
+permissions:
+  contents: read
+
+jobs:
+  revisao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Revisar e publicar para homologação
+        run: |
+          dotnet --info
+          bash scripts/revisao.sh
+          dotnet test -c Release --no-build -m:1 --logger trx --results-directory artifacts/repeticao
+      - name: Homologar o pacote Release
+        run: bash scripts/homologar.sh
+      - name: Comparar fila em duas configurações
+        run: bash scripts/fila-cenarios.sh
+      - name: Executar cenários de interface
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+          bash scripts/homologar.sh ux
+      - name: Demonstrar bloqueio por análise e testes
+        run: bash scripts/provar-gates.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: revisao-e-homologacao
+          path: |
+            artifacts/revisao/*.trx
+            artifacts/repeticao/*.trx
+            artifacts/homologacao/
+            artifacts/fila/
+            artifacts/gates/*.log
+            artifacts/gates/teste/*.trx
+  diagnostico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build Release e ferramentas
+        run: |
+          dotnet --info
+          dotnet build -c Release -m:1
+          dotnet tool install -g dotnet-counters --version 10.0.750501
+          dotnet tool install -g dotnet-trace --version 10.0.750501
+      - name: Carga com counters e trace
+        run: PERFILAR=1 bash scripts/diagnostico.sh
+      - name: Benchmark do parser
+        if: always()
+        run: |
+          dotnet run -c Release --no-build --project benchmarks/Benchmarks -- --filter '*'
+          test "$(grep -l 'Allocated' BenchmarkDotNet.Artifacts/results/*github.md | wc -l)" -gt 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desempenho-release
+          path: |
+            artifacts/diagnostico/*.json
+            artifacts/diagnostico/*.csv
+            artifacts/diagnostico/*.log
+            artifacts/diagnostico/*.nettrace
+            artifacts/diagnostico/*-top.txt
+            BenchmarkDotNet.Artifacts/results/

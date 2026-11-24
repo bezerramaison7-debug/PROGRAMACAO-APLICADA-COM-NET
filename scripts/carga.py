@@ -5,6 +5,7 @@ from contextlib import closing
 import http.client
 import json
 import math
+import os
 from pathlib import Path
 import socket
 from time import perf_counter
@@ -12,7 +13,7 @@ from time import perf_counter
 PEDIDO = json.dumps({"regiao": "SE", "prioritario": False, "itens": [
     {"sku": "CARGA", "quantidade": 2, "precoCentavos": 150}
 ]})
-HEADERS = {"Content-Type": "application/json", "Authorization": "Bearer " + __import__("os").environ.get("HUB_TOKEN", "carga-local")}
+HEADERS = {"Content-Type": "application/json", "Authorization": "Bearer " + os.environ.get("HUB_TOKEN", "")}
 
 
 def request(conn, verb, path, body=None):

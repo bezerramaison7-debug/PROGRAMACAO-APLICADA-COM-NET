@@ -4,3 +4,6 @@
 *.db*
 artifacts/
 .vs/
+TestResults/
+node_modules/
+__pycache__/

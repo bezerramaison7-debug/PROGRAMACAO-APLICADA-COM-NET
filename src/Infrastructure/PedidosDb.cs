@@ -71,7 +71,9 @@ public sealed class PedidosStore(PedidosDb db)
             Meta = new() { Regiao = pedido.Regiao, Prioritario = pedido.Prioritario },
             Itens = pedido.Itens.Select(i => new ItemRow
             {
-                Sku = i.Sku, Quantidade = i.Quantidade, PrecoCentavos = i.PrecoCentavos
+                Sku = i.Sku,
+                Quantidade = i.Quantidade,
+                PrecoCentavos = i.PrecoCentavos
             }).ToList()
         });
         await db.SaveChangesAsync(token);
