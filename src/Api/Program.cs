@@ -4,22 +4,20 @@ using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<PedidosDb>(options => options.UseSqlite(
-    builder.Configuration.GetConnectionString("Pedidos") ?? "Data Source=pedidos.db"));
-builder.Services.AddScoped<PedidosStore>();
-builder.Services.AddScoped<IProcessamento, ProcessamentoSql>();
-builder.Services.AddSingleton(_ => new Fila(Math.Clamp(builder.Configuration.GetValue("Fila:Capacidade", 16), 1, 1024)));
-builder.Services.AddSingleton(new LimiteBanco(1));
-builder.Services.AddSingleton<INotificacoes, NotificacaoNula>();
-builder.Services.AddHostedService<Worker>();
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateScopes = true;
+    options.ValidateOnBuild = true;
+});
+builder.Services.AddPedidos(builder.Configuration)
+    .AddProcessamento(builder.Configuration).AddNotificacoes();
 var compilada = builder.Configuration.GetValue("Diagnostico:ConsultaCompilada", false);
 var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
     await scope.ServiceProvider.GetRequiredService<PedidosDb>().Database.MigrateAsync();
-var catalogo = new Catalogo();
 app.MapGet("/", () => "Hub de Processamento de Pedidos");
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
-app.MapPost("/pedidos", async (CriarPedidoRequest body, PedidosStore store, CancellationToken token) =>
+app.MapPost("/pedidos", async (CriarPedidoRequest body, Catalogo catalogo, PedidosStore store, CancellationToken token) =>
 {
     try
     {
@@ -45,12 +43,7 @@ app.MapPost("/lotes/validar", async (HttpRequest request, CancellationToken toke
         return Results.BadRequest(new { erro = e.Message });
     }
 });
-app.MapGet("/pedidos/{id:guid}", async (Guid id, PedidosStore store, CancellationToken token) =>
-{
-    var pedido = compilada ? await store.BuscarCompilado(id, "laboratorio") : await store.Buscar(id, "laboratorio", token);
-    return pedido is null ? Results.NotFound() :
-        Results.Ok(new PedidoResponse(pedido.Id, pedido.TotalCentavos, pedido.Categoria));
-});
+app.MapConsultas(compilada);
 app.MapGet("/pedidos", async (string? categoria, int? pagina, int? tamanho, PedidosStore store, CancellationToken token) =>
 {
     if ((pagina ?? 1) is < 1 or > 10_000 || (tamanho ?? 20) is < 1 or > 100)
